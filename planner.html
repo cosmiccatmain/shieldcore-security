@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShieldCore LA — Camera Placement Planner (Demo)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',system-ui,sans-serif;background:#f6f7f9;color:#1a1d26;overflow-x:hidden}
+h1,h2,h3,h4{font-family:'Plus Jakarta Sans',sans-serif}
+.topbar{background:#fff;border-bottom:1px solid #e2e5eb;padding:.6rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+.topbar .logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.1rem;cursor:pointer;text-decoration:none;color:#1a1d26}
+.topbar .logo-box{width:28px;height:28px;border-radius:6px;background:#0066ff;display:flex;align-items:center;justify-content:center}
+.topbar .back{font-size:.85rem;color:#0066ff;cursor:pointer;font-weight:600;text-decoration:none}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e2e5eb}
+.tab{flex:1;padding:.8rem;text-align:center;font-size:.85rem;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:#8a8fa0;transition:all .2s}
+.tab.active{color:#0066ff;border-bottom-color:#0066ff;background:#f0f4ff}
+.mode-bar{display:flex;align-items:center;gap:.6rem;padding:.6rem 1rem;background:#fff;border-bottom:1px solid #e2e5eb;flex-wrap:wrap;font-size:.8rem}
+.mode-bar label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a8fa0}
+.rb{padding:.35rem .7rem;border-radius:6px;border:1px solid #e2e5eb;background:#fff;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+.rb.on{background:#0066ff;color:#fff;border-color:#0066ff}
+.cs{padding:.35rem .5rem;border-radius:6px;border:1px solid #e2e5eb;font-size:.78rem;font-family:inherit}
+.pb{padding:.35rem .8rem;border-radius:6px;background:#0066ff;color:#fff;border:none;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit}
+.pb:hover{background:#0052cc}
+.cb{padding:.35rem .8rem;border-radius:6px;background:#ef4444;color:#fff;border:none;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+.wrap{position:relative;width:100%;height:calc(100vh - 170px);min-height:400px;background:#e8eaed}
+#c3d,#c2d{width:100%;height:100%;display:block}
+.cl{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.95);border-radius:8px;padding:.6rem;min-width:170px;box-shadow:0 2px 10px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;font-size:.75rem}
+.cl h4{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a8fa0;margin-bottom:.3rem}
+.ci{display:flex;align-items:center;justify-content:space-between;padding:.25rem 0;border-bottom:1px solid #f0f1f4;gap:.3rem}
+.ci:last-child{border:none}
+.ci button{background:none;border:none;color:#ef4444;cursor:pointer;font-weight:700}
+.inst{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.75);color:#fff;padding:.5rem .8rem;border-radius:6px;font-size:.72rem;max-width:350px}
+.sp{background:#fff;border-top:1px solid #e2e5eb;padding:.8rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+.sp .tot{font-weight:800;font-size:1rem;color:#0066ff}
+.sp .qb{padding:.45rem 1rem;border-radius:8px;background:#0066ff;color:#fff;border:none;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+</head>
+<body oncontextmenu="return false">
+
+<div class="topbar">
+  <a href="./" class="logo"><div class="logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>ShieldCore LA</a>
+  <h3 style="font-size:.95rem">Camera Placement Planner <span style="color:#8a8fa0;font-weight:500;font-size:.8rem">(Demo)</span></h3>
+  <a href="./" class="back">← Back to Site</a>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchMode('indoor')">🏠 Indoor 3D</div>
+  <div class="tab" onclick="switchMode('outdoor')">🏡 Outdoor 2D</div>
+</div>
+
+<!-- INDOOR -->
+<div id="mIndoor">
+  <div class="mode-bar">
+    <label>Room:</label>
+    <button class="rb on" onclick="setRoom('dining',this)">Dining Room</button>
+    <button class="rb" onclick="setRoom('living',this)">Living Room</button>
+    <button class="rb" onclick="setRoom('bedroom',this)">Bedroom</button>
+    <span style="color:#ddd">│</span>
+    <label>Camera:</label>
+    <select class="cs" id="cs3">
+      <optgroup label="G6 Series"><option value="G6 Bullet|199|110">G6 Bullet</option><option value="G6 Pro Bullet|479|114">G6 Pro Bullet</option><option value="G6 Turret|199|110">G6 Turret</option><option value="G6 Pro Turret|479|114">G6 Pro Turret</option><option value="G6 Dome|279|110">G6 Dome</option><option value="G6 Pro Dome|499|114">G6 Pro Dome</option><option value="G6 Instant|179|110">G6 Instant</option><option value="G6 Pro 360|499|360">G6 Pro 360</option><option value="G6 180|299|180">G6 180</option><option value="G6 PTZ|399|360">G6 PTZ</option></optgroup>
+      <optgroup label="G5 Series"><option value="G5 Turret Ultra|129|110">G5 Turret Ultra</option><option value="G5 Bullet|129|85">G5 Bullet</option><option value="G5 Pro|379|110">G5 Pro</option><option value="G5 Flex|129|110">G5 Flex</option></optgroup>
+      <optgroup label="AI Series"><option value="AI Pro|499|110">AI Pro</option><option value="AI LPR|499|47">AI LPR</option><option value="AI DSLR|1499|55">AI DSLR</option><option value="AI PTZ Industrial|1299|360">AI PTZ Ind.</option><option value="AI Theta Pro|199|360">AI Theta Pro</option></optgroup>
+      <optgroup label="G4 Series"><option value="G4 Instant|99|110">G4 Instant</option></optgroup>
+    </select>
+    <button class="pb" id="pb3" onclick="tp3()">📍 Place</button>
+    <button class="cb" onclick="cc3()">Clear</button>
+    <span style="font-size:.7rem;color:#8a8fa0;margin-left:auto">Left-click wall to place • Right-click+drag camera to aim</span>
+  </div>
+  <div class="wrap"><canvas id="c3d"></canvas>
+    <div class="cl"><h4>Placed Cameras</h4><div id="cl3"><p style="color:#aaa">None yet</p></div></div>
+    <div class="inst">Left-click: place camera on wall • Right-click + drag on placed camera: rotate aim • Left-drag: orbit view • Scroll: zoom</div>
+  </div>
+</div>
+
+<!-- OUTDOOR -->
+<div id="mOutdoor" style="display:none">
+  <div class="mode-bar">
+    <label>House:</label>
+    <button class="rb on" onclick="setHouse('ranch',this)">Ranch</button>
+    <button class="rb" onclick="setHouse('twostory',this)">Two-Story</button>
+    <button class="rb" onclick="setHouse('lshaped',this)">L-Shaped</button>
+    <span style="color:#ddd">│</span>
+    <label>Camera:</label>
+    <select class="cs" id="cs2">
+      <optgroup label="G6 Series"><option value="G6 Bullet|199|110">G6 Bullet — 110°</option><option value="G6 Pro Bullet|479|114">G6 Pro Bullet — 114°</option><option value="G6 Turret|199|110">G6 Turret — 110°</option><option value="G6 Pro Turret|479|114">G6 Pro Turret — 114°</option><option value="G6 Dome|279|110">G6 Dome — 110°</option><option value="G6 Pro Dome|499|114">G6 Pro Dome — 114°</option><option value="G6 Instant|179|110">G6 Instant — 110°</option><option value="G6 Pro 360|499|360">G6 Pro 360 — 360°</option><option value="G6 180|299|180">G6 180 — 180°</option><option value="G6 PTZ|399|360">G6 PTZ — 360°</option></optgroup>
+      <optgroup label="G5 Series"><option value="G5 Turret Ultra|129|110">G5 Turret Ultra — 110°</option><option value="G5 Bullet|129|85">G5 Bullet — 85°</option><option value="G5 Pro|379|110">G5 Pro — 110°</option><option value="G5 Flex|129|110">G5 Flex — 110°</option></optgroup>
+      <optgroup label="AI Series"><option value="AI Pro|499|110">AI Pro — 110°</option><option value="AI LPR|499|47">AI LPR — 47°</option><option value="AI DSLR|1499|55">AI DSLR — 55°</option><option value="AI PTZ Industrial|1299|360">AI PTZ Ind. — 360°</option><option value="AI Theta Pro|199|360">AI Theta Pro — 360°</option></optgroup>
+      <optgroup label="G4 Series"><option value="G4 Instant|99|110">G4 Instant — 110°</option></optgroup>
+    </select>
+    <button class="pb" id="pb2" onclick="tp2()">📍 Place</button>
+    <button class="cb" onclick="cc2()">Clear</button>
+    <span style="font-size:.7rem;color:#8a8fa0;margin-left:auto">Left-click to place • Right-click+drag to rotate aim</span>
+  </div>
+  <div class="wrap"><canvas id="c2d"></canvas>
+    <div class="cl"><h4>Placed Cameras</h4><div id="cl2"><p style="color:#aaa">None yet</p></div></div>
+    <div class="inst">Left-click: place camera • Right-click + drag on camera: rotate aim direction</div>
+  </div>
+</div>
+
+<div class="sp">
+  <div>Cameras: <strong id="cnt">0</strong></div>
+  <div>Equipment: <span class="tot" id="tot">$0</span></div>
+  <button class="qb" onclick="window.location.href='./'">Get Install Quote →</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ===== STATE =====
+let allCams=[];
+let p3=false, p2=false;
+
+function upd(){
+  document.getElementById('cnt').textContent=allCams.length;
+  document.getElementById('tot').textContent='$'+allCams.reduce((s,c)=>s+c.price,0).toLocaleString();
+}
+function switchMode(m){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(m==='indoor'?0:1)===i));
+  document.getElementById('mIndoor').style.display=m==='indoor'?'block':'none';
+  document.getElementById('mOutdoor').style.display=m==='outdoor'?'block':'none';
+  if(m==='outdoor')init2d();
+}
+
+// ===================== 3D INDOOR =====================
+let scene,cam3,ren,walls3=[],furns3=[];
+let cams3=[]; // {group, body, cone, pos:Vec3, dir:Vec3, is360, name, price}
+let rc=new THREE.Raycaster(), ms=new THREE.Vector2();
+let orbX=0.6,orbY=-0.5,orbD=12;
+let dragging=false,dStart={x:0,y:0};
+let rotCam=-1; // index of camera being right-click rotated
+
+const RM={
+  dining:{w:6,h:3,d:5,furn:[{x:0,z:0,w:2,h:.8,d:1.2},{x:-1.3,z:0,w:.5,h:.9,d:.5},{x:1.3,z:0,w:.5,h:.9,d:.5},{x:0,z:-.9,w:.5,h:.9,d:.5},{x:0,z:.9,w:.5,h:.9,d:.5},{x:-2.7,z:0,w:.4,h:1.8,d:1.5}]},
+  living:{w:8,h:3,d:6,furn:[{x:0,z:2,w:3,h:.8,d:1},{x:0,z:.5,w:1.5,h:.45,d:.8},{x:0,z:-2.7,w:2,h:1.2,d:.1,y:1},{x:-3.7,z:0,w:.4,h:2,d:2},{x:2.5,z:1,w:.8,h:.8,d:.8}]},
+  bedroom:{w:5,h:3,d:5,furn:[{x:0,z:.5,w:2,h:.6,d:2.2},{x:-1.4,z:-.3,w:.5,h:.6,d:.5},{x:1.4,z:-.3,w:.5,h:.6,d:.5},{x:2,z:-2,w:.5,h:1,d:1.5},{x:-2.2,z:-1.5,w:.6,h:2.2,d:1.2}]}
+};
+let curRoom='dining';
+
+function orbCam(){
+  cam3.position.set(orbD*Math.cos(orbY)*Math.cos(orbX),orbD*Math.sin(orbX)+2,orbD*Math.sin(orbY)*Math.cos(orbX));
+  cam3.lookAt(0,1,0);
+}
+
+function init3(){
+  const cv=document.getElementById('c3d'),wr=cv.parentElement;
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0xf0f0f0);
+  cam3=new THREE.PerspectiveCamera(50,wr.clientWidth/wr.clientHeight,0.1,100);
+  ren=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+  ren.setSize(wr.clientWidth,wr.clientHeight);
+  ren.shadowMap.enabled=true;
+  scene.add(new THREE.AmbientLight(0xffffff,0.6));
+  const dl=new THREE.DirectionalLight(0xffffff,0.8);dl.position.set(5,10,5);dl.castShadow=true;scene.add(dl);
+  orbCam();
+
+  // Left mouse: orbit or place
+  cv.addEventListener('mousedown',e=>{
+    if(e.button===0){dragging=false;dStart={x:e.clientX,y:e.clientY};}
+    if(e.button===2){
+      // Right click: check if on a camera body
+      const r=cv.getBoundingClientRect();
+      ms.x=((e.clientX-r.left)/r.width)*2-1;
+      ms.y=-((e.clientY-r.top)/r.height)*2+1;
+      rc.setFromCamera(ms,cam3);
+      for(let i=0;i<cams3.length;i++){
+        const hits=rc.intersectObject(cams3[i].body);
+        if(hits.length>0){rotCam=i;cv.style.cursor='crosshair';e.preventDefault();return;}
+      }
+    }
+  });
+
+  cv.addEventListener('mousemove',e=>{
+    // Right-click rotating a camera
+    if(rotCam>=0 && e.buttons===2){
+      const c=cams3[rotCam];
+      if(c.is360)return;
+      const r=cv.getBoundingClientRect();
+      ms.x=((e.clientX-r.left)/r.width)*2-1;
+      ms.y=-((e.clientY-r.top)/r.height)*2+1;
+      rc.setFromCamera(ms,cam3);
+      // Intersect a large invisible plane at camera height
+      const pl=new THREE.Plane(new THREE.Vector3(0,1,0),-c.pos.y);
+      const tgt=new THREE.Vector3();
+      if(rc.ray.intersectPlane(pl,tgt)){
+        c.dir=new THREE.Vector3().subVectors(tgt,c.pos).normalize();
+        rebuildCone(c);
+      }
+      return;
+    }
+    // Left-drag: orbit
+    if(e.buttons===1 && rotCam<0){
+      const dx=e.clientX-dStart.x, dy=e.clientY-dStart.y;
+      if(Math.abs(dx)>3||Math.abs(dy)>3)dragging=true;
+      orbY+=dx*0.005;
+      orbX=Math.max(-0.2,Math.min(1.2,orbX+dy*0.005));
+      dStart={x:e.clientX,y:e.clientY};
+      orbCam();
+    }
+  });
+
+  cv.addEventListener('mouseup',e=>{
+    if(e.button===2){rotCam=-1;cv.style.cursor=p3?'crosshair':'grab';return;}
+    if(e.button===0 && !dragging && p3){
+      const r=cv.getBoundingClientRect();
+      ms.x=((e.clientX-r.left)/r.width)*2-1;
+      ms.y=-((e.clientY-r.top)/r.height)*2+1;
+      rc.setFromCamera(ms,cam3);
+      const hits=rc.intersectObjects(walls3);
+      if(hits.length>0) place3(hits[0].point,hits[0].face.normal);
+    }
+  });
+
+  cv.addEventListener('wheel',e=>{orbD=Math.max(4,Math.min(25,orbD+e.deltaY*0.01));orbCam();});
+
+  buildRoom(curRoom);
+  (function anim(){requestAnimationFrame(anim);ren.render(scene,cam3)})();
+
+  window.addEventListener('resize',()=>{cam3.aspect=wr.clientWidth/wr.clientHeight;cam3.updateProjectionMatrix();ren.setSize(wr.clientWidth,wr.clientHeight);});
+}
+
+function buildRoom(t){
+  walls3.forEach(m=>scene.remove(m));walls3=[];
+  furns3.forEach(m=>scene.remove(m));furns3=[];
+  cams3.forEach(c=>{scene.remove(c.body);scene.remove(c.cone);});cams3=[];
+  allCams=allCams.filter(c=>c.mode!=='indoor');upd();
+
+  const r=RM[t];
+  const wm=new THREE.MeshStandardMaterial({color:0xfafafa,side:2});
+  const fm=new THREE.MeshStandardMaterial({color:0xe8e0d8});
+  const um=new THREE.MeshStandardMaterial({color:0xc0b8a8});
+
+  // Floor
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(r.w,r.d),fm);
+  fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;scene.add(fl);walls3.push(fl);
+
+  // 4 walls
+  [[0,r.h/2,-r.d/2,0,0],[0,r.h/2,r.d/2,0,Math.PI],[-r.w/2,r.h/2,0,0,Math.PI/2],[r.w/2,r.h/2,0,0,-Math.PI/2]].forEach(([px,py,pz,rx,ry],i)=>{
+    const ww=i<2?r.w:r.d;
+    const mat=i===1?new THREE.MeshStandardMaterial({color:0xfafafa,transparent:true,opacity:0.12,side:2}):wm;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(ww,r.h),mat);
+    m.position.set(px,py,pz);m.rotation.set(rx,ry,0);m.receiveShadow=true;
+    scene.add(m);walls3.push(m);
+  });
+
+  // Ceiling
+  const cl=new THREE.Mesh(new THREE.PlaneGeometry(r.w,r.d),new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:0.25,side:2}));
+  cl.rotation.x=Math.PI/2;cl.position.y=r.h;scene.add(cl);walls3.push(cl);
+
+  // Furniture
+  r.furn.forEach(f=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(f.w,f.h,f.d),um);
+    m.position.set(f.x,f.h/2+(f.y||0),f.z);m.castShadow=true;scene.add(m);furns3.push(m);
+  });
+  rl3();
+}
+
+function rebuildCone(c){
+  scene.remove(c.cone);
+  if(c.is360){
+    c.cone=new THREE.Mesh(new THREE.SphereGeometry(2.5,24,16),new THREE.MeshStandardMaterial({color:0x0066ff,transparent:true,opacity:0.06,side:2}));
+    c.cone.position.copy(c.pos);
+  } else {
+    const len=3.5,rad=len*Math.tan((c.fov||110)*Math.PI/360);
+    c.cone=new THREE.Mesh(new THREE.ConeGeometry(rad,len,20,1,true),new THREE.MeshStandardMaterial({color:0x0066ff,transparent:true,opacity:0.1,side:2}));
+    const cp=c.pos.clone().add(c.dir.clone().multiplyScalar(len/2));
+    c.cone.position.copy(cp);
+    const up=new THREE.Vector3(0,1,0);
+    c.cone.quaternion.setFromUnitVectors(up,c.dir);
+  }
+  scene.add(c.cone);
+}
+
+function place3(pos,norm){
+  const v=document.getElementById('cs3').value.split('|');
+  const name=v[0],price=+v[1],fov=+v[2];
+  const is360=fov>=360;
+
+  const body=new THREE.Mesh(new THREE.SphereGeometry(0.15,16,16),new THREE.MeshStandardMaterial({color:0x0066ff}));
+  body.position.copy(pos);scene.add(body);
+
+  const dir=norm.clone();
+  const cd={body,cone:null,pos:pos.clone(),dir,is360,fov,name,price};
+  rebuildCone(cd);
+  cams3.push(cd);
+  allCams.push({name,price,mode:'indoor'});
+  rl3();upd();
+}
+
+function cc3(){cams3.forEach(c=>{scene.remove(c.body);scene.remove(c.cone)});cams3=[];allCams=allCams.filter(c=>c.mode!=='indoor');rl3();upd();}
+function rm3(i){scene.remove(cams3[i].body);scene.remove(cams3[i].cone);cams3.splice(i,1);allCams=allCams.filter(c=>c.mode!=='indoor');cams3.forEach(c=>allCams.push({name:c.name,price:c.price,mode:'indoor'}));rl3();upd();}
+function rl3(){
+  const el=document.getElementById('cl3');
+  if(!cams3.length){el.innerHTML='<p style="color:#aaa">None yet</p>';return;}
+  el.innerHTML=cams3.map((c,i)=>`<div class="ci"><span>${c.name}${c.is360?' 🔵':''}</span><span>$${c.price}</span><button onclick="rm3(${i})">✕</button></div>`).join('');
+}
+function tp3(){p3=!p3;const b=document.getElementById('pb3');b.textContent=p3?'✋ Cancel':'📍 Place';b.style.background=p3?'#ef4444':'#0066ff';document.getElementById('c3d').style.cursor=p3?'crosshair':'grab';}
+function setRoom(t,btn){curRoom=t;document.querySelectorAll('#mIndoor .rb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');buildRoom(t);}
+
+// ===================== 2D OUTDOOR =====================
+let ctx,cvs;
+let cams2=[]; // {x,y,angle,fov,name,price}
+let curHouse='ranch';
+let rot2=-1; // index being right-click rotated
+
+const HS={
+  ranch:{label:'Ranch House',shapes:[{x:200,y:200,w:400,h:250}],garage:{x:600,y:250,w:120,h:150},drive:{x:600,y:400,w:120,h:100},trees:[{x:100,y:100,r:25},{x:700,y:120,r:30},{x:120,y:480,r:22},{x:680,y:480,r:28}],cx:400,cy:325},
+  twostory:{label:'Two-Story Home',shapes:[{x:220,y:180,w:350,h:300}],garage:{x:570,y:280,w:130,h:150},drive:{x:570,y:430,w:130,h:80},trees:[{x:100,y:100,r:30},{x:700,y:100,r:25},{x:100,y:500,r:28},{x:700,y:500,r:32}],cx:395,cy:330},
+  lshaped:{label:'L-Shaped Home',shapes:[{x:180,y:150,w:350,h:200},{x:180,y:350,w:180,h:150}],garage:{x:530,y:200,w:120,h:150},drive:{x:530,y:350,w:120,h:100},trees:[{x:100,y:100,r:28},{x:680,y:100,r:25},{x:680,y:480,r:30},{x:100,y:480,r:22}],cx:350,cy:280}
+};
+
+function init2d(){
+  cvs=document.getElementById('c2d');const wr=cvs.parentElement;
+  cvs.width=wr.clientWidth;cvs.height=wr.clientHeight;
+  ctx=cvs.getContext('2d');
+
+  cvs.addEventListener('mousedown',e=>{
+    const r=cvs.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+    if(e.button===2){
+      // Right click: find camera to rotate
+      for(let i=cams2.length-1;i>=0;i--){
+        if(Math.sqrt((mx-cams2[i].x)**2+(my-cams2[i].y)**2)<18){rot2=i;e.preventDefault();return;}
+      }
+    }
+    if(e.button===0 && p2){
+      const v=document.getElementById('cs2').value.split('|');
+      const h=HS[curHouse];
+      cams2.push({x:mx,y:my,angle:Math.atan2(h.cy-my,h.cx-mx),fov:+v[2],name:v[0],price:+v[1]});
+      allCams.push({name:v[0],price:+v[1],mode:'outdoor'});
+      rl2();upd();draw2();
+    }
+  });
+
+  cvs.addEventListener('mousemove',e=>{
+    if(rot2>=0 && e.buttons===2){
+      const r=cvs.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+      const c=cams2[rot2];
+      c.angle=Math.atan2(my-c.y,mx-c.x);
+      draw2();
+    }
+  });
+
+  cvs.addEventListener('mouseup',e=>{if(e.button===2)rot2=-1;});
+
+  draw2();
+  window.addEventListener('resize',()=>{cvs.width=cvs.parentElement.clientWidth;cvs.height=cvs.parentElement.clientHeight;draw2();});
+}
+
+function draw2(){
+  if(!ctx)return;
+  const c=ctx,w=cvs.width,h=cvs.height,ho=HS[curHouse];
+
+  c.fillStyle='#c8dbb0';c.fillRect(0,0,w,h);
+  c.fillStyle='#b8ce9e';for(let i=0;i<150;i++)c.fillRect(Math.random()*w,Math.random()*h,2,2);
+
+  if(ho.drive){c.fillStyle='#bbb5a8';c.fillRect(ho.drive.x,ho.drive.y,ho.drive.w,ho.drive.h);}
+
+  c.fillStyle='#e8e4de';c.strokeStyle='#9a9080';c.lineWidth=2;
+  ho.shapes.forEach(s=>{c.fillRect(s.x,s.y,s.w,s.h);c.strokeRect(s.x,s.y,s.w,s.h);});
+
+  if(ho.garage){c.fillStyle='#ddd8d0';c.fillRect(ho.garage.x,ho.garage.y,ho.garage.w,ho.garage.h);c.strokeRect(ho.garage.x,ho.garage.y,ho.garage.w,ho.garage.h);c.fillStyle='#9a9080';c.font='11px sans-serif';c.textAlign='center';c.fillText('Garage',ho.garage.x+ho.garage.w/2,ho.garage.y+ho.garage.h/2+4);}
+
+  c.fillStyle='#6b6358';c.font='bold 14px sans-serif';c.textAlign='center';c.fillText(ho.label,ho.cx,ho.cy);
+
+  ho.trees.forEach(t=>{c.fillStyle='#7aad5a';c.beginPath();c.arc(t.x,t.y,t.r,0,Math.PI*2);c.fill();c.fillStyle='#5a8d3a';c.beginPath();c.arc(t.x-3,t.y-3,t.r*.6,0,Math.PI*2);c.fill();});
+
+  // Cameras
+  cams2.forEach((cm,idx)=>{
+    const fr=cm.fov*Math.PI/180, rng=cm.fov>=360?80:120;
+
+    // Coverage
+    if(cm.fov>=360){
+      c.fillStyle='rgba(0,102,255,0.07)';c.beginPath();c.arc(cm.x,cm.y,rng,0,Math.PI*2);c.fill();
+      c.strokeStyle='rgba(0,102,255,0.18)';c.lineWidth=1;c.stroke();
+    } else {
+      c.fillStyle='rgba(0,102,255,0.09)';c.beginPath();c.moveTo(cm.x,cm.y);c.arc(cm.x,cm.y,rng,cm.angle-fr/2,cm.angle+fr/2);c.closePath();c.fill();
+      c.strokeStyle='rgba(0,102,255,0.22)';c.lineWidth=1;c.stroke();
+    }
+
+    // Body
+    c.fillStyle=idx===rot2?'#ff4444':'#0066ff';c.beginPath();c.arc(cm.x,cm.y,7,0,Math.PI*2);c.fill();
+    c.fillStyle='#fff';c.beginPath();c.arc(cm.x,cm.y,3,0,Math.PI*2);c.fill();
+
+    // Direction handle (non-360)
+    if(cm.fov<360){
+      const hx=cm.x+Math.cos(cm.angle)*25,hy=cm.y+Math.sin(cm.angle)*25;
+      c.strokeStyle=idx===rot2?'#ff4444':'#0066ff';c.lineWidth=2;c.beginPath();c.moveTo(cm.x,cm.y);c.lineTo(hx,hy);c.stroke();
+      c.fillStyle=idx===rot2?'#ff4444':'#0066ff';c.beginPath();c.arc(hx,hy,4,0,Math.PI*2);c.fill();
+    }
+
+    // Label
+    c.fillStyle='#0052cc';c.font='bold 10px sans-serif';c.textAlign='center';c.fillText(cm.name,cm.x,cm.y-16);
+  });
+}
+
+function cc2(){cams2=[];allCams=allCams.filter(c=>c.mode!=='outdoor');rl2();upd();draw2();}
+function rm2(i){cams2.splice(i,1);allCams=allCams.filter(c=>c.mode!=='outdoor');cams2.forEach(c=>allCams.push({name:c.name,price:c.price,mode:'outdoor'}));rl2();upd();draw2();}
+function rl2(){
+  const el=document.getElementById('cl2');
+  if(!cams2.length){el.innerHTML='<p style="color:#aaa">None yet</p>';return;}
+  el.innerHTML=cams2.map((c,i)=>`<div class="ci"><span>${c.name}</span><span>$${c.price}</span><button onclick="rm2(${i})">✕</button></div>`).join('');
+}
+function tp2(){p2=!p2;const b=document.getElementById('pb2');b.textContent=p2?'✋ Cancel':'📍 Place';b.style.background=p2?'#ef4444':'#0066ff';}
+function setHouse(t,btn){curHouse=t;document.querySelectorAll('#mOutdoor .rb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');cc2();draw2();}
+
+// INIT
+window.addEventListener('DOMContentLoaded',()=>{init3();});
+</script>
+</body>
+</html>
